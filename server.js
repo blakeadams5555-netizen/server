@@ -1,4 +1,4 @@
-// server.js
+// api/server.js
 import express from "express";
 import cors from "cors";
 import { createClient } from "@supabase/supabase-js";
@@ -9,10 +9,11 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
 // -------------------- Supabase Initialization --------------------
-const supabaseUrl = 'https://skdicfiqqqizbbvfbdhd.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZGljZmlxcXFpemJidmZiZGhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjkyMzIsImV4cCI6MjA3NTM0NTIzMn0.hztt8aRsUrXr50RH7M-6e-FU_dRNUEib9hwbX2sS21w';
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  throw new Error("Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables");
+}
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 // -------------------- HEALTH CHECK --------------------
 app.get("/api/health", (req, res) => {
@@ -95,3 +96,11 @@ app.post("/api/sales/reset", async (req, res) => {
 
 // -------------------- Export for Vercel --------------------
 export const handler = serverless(app);
+
+// -------------------- Local Development --------------------
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`✅ Server running locally on http://localhost:${PORT}`);
+  });
+}
