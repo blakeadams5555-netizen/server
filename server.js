@@ -20,7 +20,9 @@ app.get("/api/products", async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
-
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", message: "Server is running ✅" });
+});
 // Add or update products
 app.post("/api/products", async (req, res) => {
   const products = req.body; // array of products
