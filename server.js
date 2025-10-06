@@ -21,8 +21,12 @@ app.get("/api/products", async (req, res) => {
   res.json(data);
 });
 app.get("/api/health", (req, res) => {
+  if (!supabase) {
+    return res.status(500).json({ status: "error", message: "Supabase not initialized" });
+  }
   res.json({ status: "ok", message: "Server is running ✅" });
 });
+
 // Add or update products
 app.post("/api/products", async (req, res) => {
   const products = req.body; // array of products
