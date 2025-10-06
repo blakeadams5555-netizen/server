@@ -9,21 +9,13 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
 // -------------------- Supabase Initialization --------------------
-let supabase;
-try {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-    throw new Error("Supabase URL or ANON_KEY missing in environment variables");
-  }
-  supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-} catch (err) {
-  console.error("❌ Supabase initialization failed:", err.message);
-}
+const supabaseUrl = 'https://skdicfiqqqizbbvfbdhd.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrZGljZmlxcXFpemJidmZiZGhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk3NjkyMzIsImV4cCI6MjA3NTM0NTIzMn0.hztt8aRsUrXr50RH7M-6e-FU_dRNUEib9hwbX2sS21w';
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // -------------------- HEALTH CHECK --------------------
 app.get("/api/health", (req, res) => {
-  if (!supabase) {
-    return res.status(500).json({ status: "error", message: "Supabase not initialized" });
-  }
   res.json({ status: "ok", message: "Server is running ✅" });
 });
 
@@ -31,7 +23,6 @@ app.get("/api/health", (req, res) => {
 
 // Get all products
 app.get("/api/products", async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: "Supabase not initialized" });
   try {
     const { data, error } = await supabase.from("products").select("*");
     if (error) throw error;
@@ -42,21 +33,16 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
-// Add or update products (upsert)
+// Add or update products (bulk upsert)
 app.post("/api/products", async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: "Supabase not initialized" });
   const products = req.body;
   if (!Array.isArray(products)) {
     return res.status(400).json({ error: "Body must be an array of products" });
   }
 
   try {
-    for (const product of products) {
-      const { error } = await supabase
-        .from("products")
-        .upsert(product, { onConflict: ["id"] });
-      if (error) throw error;
-    }
+    const { error } = await supabase.from("products").upsert(products, { onConflict: ["id"] });
+    if (error) throw error;
     res.json({ success: true, message: "Products added/updated successfully" });
   } catch (err) {
     console.error("❌ Failed to upsert products:", err.message);
@@ -68,7 +54,6 @@ app.post("/api/products", async (req, res) => {
 
 // Get all sales
 app.get("/api/sales", async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: "Supabase not initialized" });
   try {
     const { data, error } = await supabase.from("sales").select("*");
     if (error) throw error;
@@ -81,9 +66,7 @@ app.get("/api/sales", async (req, res) => {
 
 // Add a new sale
 app.post("/api/sales", async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: "Supabase not initialized" });
   const sale = req.body;
-
   if (!sale || !sale.id) {
     return res.status(400).json({ error: "Sale object with 'id' is required" });
   }
@@ -100,7 +83,6 @@ app.post("/api/sales", async (req, res) => {
 
 // Reset all sales
 app.post("/api/sales/reset", async (req, res) => {
-  if (!supabase) return res.status(500).json({ error: "Supabase not initialized" });
   try {
     const { error } = await supabase.from("sales").delete().neq("id", 0);
     if (error) throw error;
