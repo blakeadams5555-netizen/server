@@ -1,4 +1,4 @@
-// server.js (Vercel + Supabase version)
+// server.js (Vercel + Supabase with updates/appends)
 import express from "express";
 import cors from "cors";
 import { createClient } from "@supabase/supabase-js";
@@ -21,19 +21,22 @@ app.get("/api/products", async (req, res) => {
   res.json(data);
 });
 
-// Overwrite all products (bulk insert)
+// Add or update products
 app.post("/api/products", async (req, res) => {
   const products = req.body; // array of products
 
-  // Delete existing products
-  const { error: delError } = await supabase.from("products").delete().neq("id", 0);
-  if (delError) return res.status(500).json({ error: delError.message });
-
-  // Insert new products
-  const { error } = await supabase.from("products").insert(products);
-  if (error) return res.status(500).json({ error: error.message });
-
-  res.json({ success: true, message: "Products updated successfully" });
+  try {
+    for (const product of products) {
+      // Upsert: insert new or update existing
+      const { error } = await supabase
+        .from("products")
+        .upsert(product, { onConflict: ["id"] }); // 'id' is the unique key
+      if (error) throw error;
+    }
+    res.json({ success: true, message: "Products added/updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // -------------------- SALES --------------------
@@ -48,10 +51,15 @@ app.get("/api/sales", async (req, res) => {
 // Add a new sale
 app.post("/api/sales", async (req, res) => {
   const sale = req.body; // { id, date, salesperson, items, total, profit }
-  const { error } = await supabase.from("sales").insert([sale]);
-  if (error) return res.status(500).json({ error: error.message });
 
-  res.json({ success: true, message: "Sale added successfully" });
+  try {
+    const { error } = await supabase.from("sales").insert([sale]);
+    if (error) throw error;
+
+    res.json({ success: true, message: "Sale added successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Reset all sales
